@@ -10,7 +10,6 @@ use timely::logging::TimelyEvent;
 use timely::communication::logging::{CommunicationEvent, CommunicationSetup};
 use timely::dataflow::operators::Filter;
 use timely::dataflow::operators::capture::{EventReader, Replay};
-
 use differential_dataflow::AsCollection;
 use differential_dataflow::operators::Consolidate;
 
@@ -25,8 +24,8 @@ fn main() {
 
     println!("starting with work peers: {}, comm peers: {}, granularity: {}", work_peers, comm_peers, granularity);
 
-    let t_listener = TcpListener::bind("127.0.0.1:8000").unwrap();
-    let d_listener = TcpListener::bind("127.0.0.1:9000").unwrap();
+    let t_listener = TcpListener::bind("0.0.0.0:8000").unwrap();
+    let d_listener = TcpListener::bind("0.0.0.0:9000").unwrap();
     let t_sockets =
     Arc::new(Mutex::new((0..work_peers).map(|_| {
             let socket = t_listener.incoming().next().unwrap().unwrap();
@@ -84,14 +83,14 @@ fn main() {
                 .consolidate()
                 .inspect(|x| println!("TIMELY\t{:?}", x));
 
-            // d_events
-            //     .flat_map(move |(ts, _worker, datum)| {
-            //         let ts = Duration::from_secs((ts.as_secs()/granularity + 1) * granularity);
-            //         Some((datum, ts, 1))
-            //     })
-            //     .as_collection()
-            //     .consolidate()
-            //     .inspect(|x| println!("COMMS\t{:?}", x));
+            d_events
+                .flat_map(move |(ts, _worker, datum)| {
+                    let ts = Duration::from_secs((ts.as_secs()/granularity + 1) * granularity);
+                    Some((datum, ts, ::std::mem::size_of_val(&datum) as isize))
+                })
+                .as_collection()
+                .inspect(|x| println!("COMM_CHANNEL\t{:?}", x));
+            ;
 
         });
 
