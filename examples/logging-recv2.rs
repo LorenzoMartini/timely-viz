@@ -76,12 +76,10 @@ fn main() {
             t_events
                 .flat_map(move |(ts, _worker, datum)| {
                     let ts = Duration::from_secs((ts.as_secs()/granularity + 1) * granularity);
-                    Some((datum, ts, 1))
+                    Some((datum, ts, ::std::mem::size_of_val(&datum) as isize))
                 })
                 .as_collection()
-                .map(|x| ())
-                .consolidate()
-                .inspect(|x| println!("TIMELY\t{:?}", x));
+                .inspect(|x| println!("COMM_CHANNEL\t{:?}", x));
 
             d_events
                 .flat_map(move |(ts, _worker, datum)| {
